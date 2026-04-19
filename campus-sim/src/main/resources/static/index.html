@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus IoT Analytics</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --highlight-bg: rgba(255, 255, 255, 0.9);
+            /* Light theme for specific details */
+            --accent-color: #0ea5e9;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            color: #f8fafc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: rgba(15, 23, 42, 0.9);
+            border-bottom: 2px solid var(--accent-color);
+        }
+
+        .card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+        }
+
+        /* Light Theme Box for Particulars */
+        .details-box {
+            background: var(--highlight-bg);
+            color: #1e293b;
+            border-radius: 12px;
+            padding: 20px;
+            height: 100%;
+        }
+
+        .details-box small {
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .details-box span {
+            font-weight: 700;
+            color: #0f172a;
+            display: block;
+            font-size: 1.1rem;
+        }
+
+        .temp-display {
+            font-size: 4.5rem;
+            font-weight: 800;
+            color: var(--accent-color);
+        }
+
+        .status-dot {
+            height: 12px;
+            width: 12px;
+            background-color: #22c55e;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+            box-shadow: 0 0 12px #22c55e;
+        }
+
+        .table {
+            color: #e2e8f0;
+        }
+
+        .table thead {
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="navbar navbar-dark mb-4">
+        <div class="container">
+            <span class="navbar-brand mb-0 h4 fw-bold">
+                🛰️ <span style="color: var(--accent-color)">NEXUS</span> | Smart Campus IoT
+            </span>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row g-4 mb-4">
+            <div class="col-md-5">
+                <div class="card text-center p-4 h-100">
+                    <h6 class="opacity-75">LIVE SENSOR DATA</h6>
+                    <div id="current-temp" class="temp-display my-2">--°C</div>
+                    <div class="d-flex justify-content-center align-items-center">
+                        <span class="status-dot"></span>
+                        <span class="fw-bold text-success">ACTIVE STREAM</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-7">
+                <div class="details-box shadow-lg">
+                    <h6 class="mb-4 border-bottom pb-2">SYSTEM SPECIFICATIONS</h6>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <small>Node ID</small>
+                            <span>NX-SMVITM-085</span>
+                        </div>
+                        <div class="col-6">
+                            <small>Data Protocol</small>
+                            <span>REST / JDBC-Hiberate</span>
+                        </div>
+                        <div class="col-6">
+                            <small>Deployment Status</small>
+                            <span class="text-primary">Local Simulation</span>
+                        </div>
+                        <div class="col-6">
+                            <small>Last Sync Time</small>
+                            <span id="last-sync" class="text-danger">--:--:--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card p-3">
+            <h6 class="mb-3 px-2">RECENT ACTIVITY LOG</h6>
+            <div class="table-responsive">
+                <table class="table table-borderless align-middle">
+                    <thead class="small opacity-50">
+                        <tr>
+                            <th>LOG ID</th>
+                            <th>DEVICE</th>
+                            <th>READING</th>
+                            <th>TIMESTAMP</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sensor-body">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function updateDashboard() {
+            try {
+                const res = await fetch('/api/sensors/data');
+                const data = await res.json();
+                if (data.length === 0) return;
+
+                const latest = data[data.length - 1];
+
+                document.getElementById('current-temp').innerText = latest.value + "°C";
+                document.getElementById('last-sync').innerText = new Date().toLocaleTimeString();
+
+                const tableBody = document.getElementById('sensor-body');
+                tableBody.innerHTML = '';
+
+                data.slice(-7).reverse().forEach(log => {
+                    tableBody.innerHTML += `
+                    <tr class="border-bottom border-secondary border-opacity-25">
+                        <td><span class="badge bg-secondary">#${log.id}</span></td>
+                        <td class="fw-bold text-info">${log.sensorName}</td>
+                        <td class="fs-5">${log.value} ${log.unit}</td>
+                        <td class="text-muted small">${new Date(log.timestamp).toLocaleTimeString()}</td>
+                    </tr>
+                `;
+                });
+            } catch (e) { console.error("Sync Error", e); }
+        }
+
+        setInterval(updateDashboard, 5000);
+        updateDashboard();
+    </script>
+</body>
+
+</html>
